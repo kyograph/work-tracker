@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>作業記録</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #fff; --surface: #f7f7f6; --surface2: #efefee;
+  --border: rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.13); --border3: rgba(0,0,0,0.22);
+  --text: #111110; --muted: #8a8784; --danger: #b83232; --success: #1a7a4a;
+  --nav-h: 64px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --mono: 'DM Mono', monospace; --sans: 'Noto Sans JP', sans-serif;
+}
+html { height: 100%; }
+body {
+  min-height: 100%; background: var(--bg); color: var(--text);
+  font-family: var(--sans); font-weight: 300; -webkit-font-smoothing: antialiased;
+  padding-bottom: calc(var(--nav-h) + var(--safe-bottom));
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Layout ── */
+.screen { display: none; padding: 1.25rem 1rem 1rem; max-width: 600px; margin: 0 auto; }
+.screen.active { display: block; }
+
+/* ── Header ── */
+.header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+.header-title { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.header-date { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+/* ── Timer card ── */
+.timer-card {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 20px; padding: 1.5rem 1.25rem 1.25rem;
+  margin-bottom: 1rem; transition: border-color 0.25s, background 0.25s;
+}
+.timer-card.running { border-color: rgba(0,0,0,0.3); background: #fff; }
+.timer-card.paused  { border-color: rgba(0,0,0,0.15); background: #fafafa; }
+.timer-card.paused .time-display { opacity: 0.38; }
+
+.task-chip-label { font-size: 10px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+.task-name-display {
+  font-size: 16px; font-weight: 400; color: var(--text);
+  min-height: 24px; margin-bottom: 1rem;
+  display: flex; align-items: center; gap: 8px;
+}
+.task-name-display.empty { color: var(--muted); font-style: italic; font-size: 14px; }
+
+.time-display {
+  font-family: var(--mono); font-size: clamp(48px, 14vw, 72px);
+  font-weight: 300; letter-spacing: -3px; line-height: 1;
+  margin-bottom: 0.35rem;
+}
+.current-time {
+  font-family: var(--mono); font-size: 13px; font-weight: 300;
+  color: var(--muted); letter-spacing: 0.06em;
+  margin-bottom: 1.1rem;
+}
+
+.controls { display: flex; gap: 8px; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border-radius: 12px; font-family: var(--sans); font-weight: 400;
+  cursor: pointer; transition: all 0.12s; border: 1px solid transparent;
+  white-space: nowrap; user-select: none;
+  min-height: 48px; padding: 0 20px; font-size: 14px;
+}
+.btn-primary { background: var(--text); color: #fff; border-color: var(--text); flex: 1; }
+.btn-primary:active { background: #333; transform: scale(0.97); }
+.btn-ghost { background: transparent; color: var(--muted); border-color: var(--border2); }
+.btn-ghost:active { background: var(--surface); transform: scale(0.97); }
+.btn-ghost.flex1 { flex: 1; }
+.btn:disabled { opacity: 0.28; pointer-events: none; }
+.btn-sm { min-height: 40px; padding: 0 14px; font-size: 13px; border-radius: 10px; }
+.btn-danger { color: var(--danger); border-color: rgba(184,50,50,0.25); }
+.btn-danger:active { background: rgba(184,50,50,0.06); }
+
+/* ── Input row ── */
+.input-row { display: flex; gap: 8px; margin-bottom: 1rem; }
+.input-wrap { position: relative; flex: 1; }
+.task-input {
+  width: 100%; background: #fff; border: 1px solid var(--border2);
+  border-radius: 12px; padding: 0 14px;
+  font-family: var(--sans); font-size: 16px;
+  font-weight: 300; color: var(--text); outline: none;
+  min-height: 48px; transition: border-color 0.2s;
+}
+.task-input::placeholder { color: #bbb; }
+.task-input:focus { border-color: var(--border3); }
+.task-input.open { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom-color: transparent; }
+
+.suggest-list {
+  position: absolute; top: 100%; left: 0; right: 0;
+  background: #fff; border: 1px solid var(--border3); border-top: none;
+  border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;
+  z-index: 200; overflow: hidden; display: none;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+.suggest-list.visible { display: block; }
+.suggest-item {
+  padding: 14px 16px; font-size: 15px; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.suggest-item:last-child { border-bottom: none; }
+.suggest-item:active { background: var(--surface); }
+.suggest-item-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.suggest-item-meta { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
+/* ── Stats bar ── */
+.stats-bar { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 1.25rem; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 8px; text-align: center; }
+.stat-val { font-family: var(--mono); font-size: 20px; font-weight: 400; color: var(--text); display: block; margin-bottom: 4px; }
+.stat-label { font-size: 10px; color: var(--muted); letter-spacing: 0.04em; line-height: 1.3; }
+
+/* ── Log items ── */
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.section-label { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+
+.log-group { margin-bottom: 1.5rem; }
+.log-group-date { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+.log-list { display: flex; flex-direction: column; gap: 6px; }
+.log-item {
+  display: flex; align-items: center; gap: 10px;
+  background: #fff; border: 1px solid var(--border);
+  border-radius: 12px; padding: 13px 14px;
+  animation: slideIn 0.16s ease;
+}
+@keyframes slideIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+.log-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text); flex-shrink: 0; opacity: 0.25; }
+.log-task-name { flex: 1; font-size: 14px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.log-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
+.log-dur { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--text); min-width: 50px; text-align: right; }
+.log-del {
+  background: none; border: none; cursor: pointer; color: var(--muted);
+  font-size: 18px; line-height: 1; opacity: 0.25; padding: 4px 6px;
+  transition: opacity 0.15s; -webkit-tap-highlight-color: transparent;
+}
+.log-del:active { opacity: 1; color: var(--danger); }
+
+/* ── Task stats ── */
+.task-stat-item {
+  background: #fff; border: 1px solid var(--border);
+  border-radius: 14px; padding: 14px 16px; margin-bottom: 8px;
+}
+.task-stat-top { display: flex; align-items: center; gap: 10px; }
+.task-stat-top.expanded { margin-bottom: 14px; }
+.task-stat-name { flex: 1; font-size: 15px; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.task-stat-chips { display: flex; gap: 6px; flex-shrink: 0; }
+.chip { font-family: var(--mono); font-size: 11px; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 3px 8px; }
+.chip-total { color: var(--text); font-weight: 500; }
+.chevron { font-size: 10px; color: var(--muted); transition: transform 0.2s; flex-shrink: 0; }
+.chevron.open { transform: rotate(180deg); }
+.task-stat-detail { display: none; }
+.task-stat-detail.visible { display: block; }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+.detail-card { background: var(--surface); border-radius: 8px; padding: 10px 8px; text-align: center; }
+.detail-val { font-family: var(--mono); font-size: 15px; font-weight: 400; display: block; margin-bottom: 3px; }
+.detail-label { font-size: 10px; color: var(--muted); }
+.bar-section-label { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+.bar-list { display: flex; flex-direction: column; gap: 6px; }
+.bar-row { display: flex; align-items: center; gap: 8px; }
+.bar-date { font-family: var(--mono); font-size: 10px; color: var(--muted); width: 60px; flex-shrink: 0; }
+.bar-track { flex: 1; height: 5px; background: var(--surface); border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--text); border-radius: 3px; }
+.bar-val { font-family: var(--mono); font-size: 10px; color: var(--text); width: 40px; text-align: right; flex-shrink: 0; }
+
+/* ── Export panel ── */
+.export-panel { background: var(--surface); border: 1px solid var(--border2); border-radius: 16px; padding: 1.25rem; margin-bottom: 1rem; }
+.export-panel-title { font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+.export-panel-desc { font-size: 13px; color: var(--muted); line-height: 1.7; margin-bottom: 14px; }
+.export-panel-desc code { font-family: var(--mono); background: var(--surface2); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+.export-btns { display: flex; flex-direction: column; gap: 8px; }
+.copy-result { margin-top: 10px; background: #fff; border: 1px solid var(--border2); border-radius: 8px; padding: 10px 12px; font-family: var(--mono); font-size: 11px; color: var(--muted); line-height: 1.6; display: none; word-break: break-all; }
+.copy-result.visible { display: block; }
+
+.empty-state { text-align: center; padding: 3rem 0; color: #bbb; font-size: 14px; }
+
+/* ── Bottom nav ── */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: calc(var(--nav-h) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border2);
+  display: flex; align-items: stretch;
+  z-index: 100;
+}
+.nav-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; background: none; border: none; cursor: pointer;
+  color: var(--muted); font-family: var(--sans); font-size: 10px; font-weight: 400;
+  letter-spacing: 0.04em; padding: 8px 4px 0;
+  transition: color 0.15s; -webkit-tap-highlight-color: transparent;
+}
+.nav-item.active { color: var(--text); }
+.nav-icon { font-size: 22px; line-height: 1; }
+.nav-label { font-size: 10px; }
+
+/* ── Calendar modal ── */
+.cal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.3);
+  z-index: 500; display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.22s;
+}
+.cal-overlay.open { opacity: 1; pointer-events: auto; }
+.cal-sheet {
+  background: #fff; border-radius: 20px 20px 0 0;
+  padding: 1.25rem 1rem calc(1.25rem + var(--safe-bottom));
+  width: 100%; max-width: 480px;
+  transform: translateY(20px); transition: transform 0.22s;
+  box-shadow: 0 -4px 32px rgba(0,0,0,0.1);
+}
+.cal-overlay.open .cal-sheet { transform: translateY(0); }
+.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.cal-month-label { font-family: var(--mono); font-size: 14px; font-weight: 500; letter-spacing: 0.06em; }
+.cal-nav { background: none; border: none; font-size: 20px; color: var(--muted); cursor: pointer; padding: 6px 12px; border-radius: 8px; line-height: 1; }
+.cal-nav:active { background: var(--surface); }
+.cal-dow { display: grid; grid-template-columns: repeat(7,1fr); margin-bottom: 4px; }
+.cal-dow span { text-align: center; font-family: var(--mono); font-size: 10px; color: var(--muted); padding: 4px 0; }
+.cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; }
+.cal-day {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 14px; border-radius: 10px;
+  cursor: pointer; border: none; background: none; color: var(--text);
+  transition: background 0.1s; position: relative;
+}
+.cal-day:active { background: var(--surface); }
+.cal-day.other-month { color: #ccc; pointer-events: none; }
+.cal-day.today { background: var(--text); color: #fff; }
+.cal-day.today:active { background: #333; }
+.cal-day.has-log::after {
+  content: ''; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
+  width: 4px; height: 4px; border-radius: 50%; background: var(--muted); opacity: 0.6;
+}
+.cal-day.today.has-log::after { background: rgba(255,255,255,0.7); }
+.cal-day.viewing { outline: 2px solid rgba(0,0,0,0.35); outline-offset: -2px; }
+.cal-day.viewing.today { outline-color: rgba(255,255,255,0.8); }
+.cal-close { width: 100%; margin-top: 1rem; min-height: 44px; }
+.header-date-btn {
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
+  background: none; border: none; cursor: pointer; padding: 4px 8px;
+  border-radius: 6px; transition: background 0.1s;
+  -webkit-tap-highlight-color: transparent; text-decoration: underline; text-underline-offset: 3px;
+}
+.header-date-btn:active { background: var(--surface); }
+
+/* ── Pulse ── */
+.pulse-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--text); display: inline-block; flex-shrink: 0;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.12} }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: calc(var(--nav-h) + var(--safe-bottom) + 12px);
+  left: 50%; transform: translateX(-50%) translateY(8px);
+  background: var(--text); color: #fff; font-size: 13px;
+  padding: 10px 18px; border-radius: 10px; opacity: 0; pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s; z-index: 999; white-space: nowrap;
+  max-width: calc(100vw - 2rem); text-align: center; word-break: break-word; white-space: normal;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.success { background: #1a7a4a; }
+</style>
+</head>
+<body>
+
+<!-- ══ Screen: タイマー ══ -->
+<div class="screen active" id="screen-timer">
+  <div class="header">
+    <span class="header-title">作業記録</span>
+    <button class="header-date-btn" id="headerDate" onclick="openCalendar()"></button>
+  </div>
+
+  <div class="timer-card" id="timerCard">
+    <div class="task-chip-label">タスク</div>
+    <div class="task-name-display empty" id="taskDisplay">タスク名を入力して開始</div>
+    <div class="time-display" id="timerDisplay">00:00:00</div>
+    <div class="current-time" id="currentTime">--:--:--</div>
+    <div class="controls">
+      <button class="btn btn-primary" id="startBtn" onclick="startTimer()">▶ 開始</button>
+      <button class="btn btn-ghost" id="pauseBtn" onclick="pauseTimer()" disabled>⏸ 一時停止</button>
+      <button class="btn btn-ghost" id="stopBtn" onclick="stopTimer()" disabled>■ 記録</button>
+    </div>
+  </div>
+
+  <div class="input-row">
+    <div class="input-wrap">
+      <input class="task-input" id="taskInput" type="text" placeholder="タスク名を入力…" maxlength="60"
+        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+        oninput="onInput()" onfocus="onFocus()" onblur="onBlur()" onkeydown="onKey(event)" />
+      <div class="suggest-list" id="suggestList"></div>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="startTimer()">計測</button>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-card"><span class="stat-val" id="statTotal">0m</span><span class="stat-label">今日の<br>合計</span></div>
+    <div class="stat-card"><span class="stat-val" id="statCount">0</span><span class="stat-label">今日の<br>タスク</span></div>
+    <div class="stat-card"><span class="stat-val" id="statAvg">—</span><span class="stat-label">平均<br>時間</span></div>
+  </div>
+
+  <div class="section-header">
+    <span class="section-label" id="todayLabel"></span>
+    <button class="btn btn-sm btn-ghost btn-danger" onclick="clearToday()">削除</button>
+  </div>
+  <div class="log-list" id="logListToday"><div class="empty-state">まだ記録がありません</div></div>
+</div>
+
+<!-- ══ Screen: 過去ログ ══ -->
+<div class="screen" id="screen-log">
+  <div class="header">
+    <span class="header-title">過去のログ</span>
+    <button class="btn btn-sm btn-ghost btn-danger" onclick="clearAll()">全削除</button>
+  </div>
+  <div id="logListAll"><div class="empty-state">記録がありません</div></div>
+</div>
+
+<!-- ══ Screen: タスク統計 ══ -->
+<div class="screen" id="screen-stats">
+  <div class="header">
+    <span class="header-title">タスク統計</span>
+  </div>
+  <div id="taskStatList"><div class="empty-state">記録がありません</div></div>
+</div>
+
+<!-- ══ Screen: エクスポート ══ -->
+<div class="screen" id="screen-export">
+  <div class="header">
+    <span class="header-title">エクスポート</span>
+  </div>
+  <div class="export-panel">
+    <div class="export-panel-title">Notionへエクスポート</div>
+    <div class="export-panel-desc">
+      ボタンを押すとデータがコピーされます。<br>
+      <code>Claude（このチャット）</code> に貼り付けると Notion に書き込みます。
+    </div>
+    <div class="export-btns">
+      <button class="btn btn-ghost" onclick="copyForClaude('today')">📋 今日のログをコピー</button>
+      <button class="btn btn-ghost" onclick="copyForClaude('all')">📋 全期間をコピー</button>
+      <button class="btn btn-ghost" onclick="copyForClaude('stats')">📋 タスク統計をコピー</button>
+    </div>
+    <div class="copy-result" id="copyResult"></div>
+  </div>
+</div>
+
+<!-- ══ Calendar modal ══ -->
+<div class="cal-overlay" id="calOverlay" onclick="onOverlayClick(event)">
+  <div class="cal-sheet">
+    <div class="cal-header">
+      <button class="cal-nav" onclick="calMove(-1)">‹</button>
+      <span class="cal-month-label" id="calMonthLabel"></span>
+      <button class="cal-nav" onclick="calMove(1)">›</button>
+    </div>
+    <div class="cal-dow">
+      <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <button class="btn btn-ghost cal-close" onclick="closeCalendar()">閉じる</button>
+  </div>
+</div>
+
+<!-- ══ Bottom Nav ══ -->
+<nav class="bottom-nav">
+  <button class="nav-item active" id="nav-timer" onclick="switchScreen('timer')">
+    <span class="nav-icon">⏱</span>
+    <span class="nav-label">タイマー</span>
+  </button>
+  <button class="nav-item" id="nav-log" onclick="switchScreen('log')">
+    <span class="nav-icon">📋</span>
+    <span class="nav-label">ログ</span>
+  </button>
+  <button class="nav-item" id="nav-stats" onclick="switchScreen('stats')">
+    <span class="nav-icon">📊</span>
+    <span class="nav-label">統計</span>
+  </button>
+  <button class="nav-item" id="nav-export" onclick="switchScreen('export')">
+    <span class="nav-icon">↗</span>
+    <span class="nav-label">出力</span>
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const LOGS_KEY = 'wt_logs_v3';
+let startTime = null, pausedAt = null, pausedSec = 0, intervalId = null, currentTask = '', logs = [];
+let suggestFocusIdx = -1;
+
+function init() {
+  const now = new Date(), days = ['日','月','火','水','木','金','土'];
+  document.getElementById('headerDate').textContent =
+    `${now.getMonth()+1}/${now.getDate()}（${days[now.getDay()]}）`;
+  document.getElementById('todayLabel').textContent = todayKey();
+  loadLogs(); renderAll();
+  tickClock();
+  setInterval(tickClock, 1000);
+}
+
+function pad(n) { return String(n).padStart(2,'0'); }
+function todayKey() { const d=new Date(); return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}`; }
+function isoDateKey(iso) { const d=new Date(iso); return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}`; }
+function dateLabel(iso) { const d=new Date(iso), dy=['日','月','火','水','木','金','土']; return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}（${dy[d.getDay()]}）`; }
+function formatClock(iso) { const d=new Date(iso); return pad(d.getHours())+':'+pad(d.getMinutes()); }
+function formatDur(sec) {
+  const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;
+  if(h>0) return h+'h'+pad(m)+'m'; if(m>0) return m+'m'+pad(s)+'s'; return s+'s';
+}
+function formatShort(sec) { const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60); return h>0?h+'h'+pad(m)+'m':m+'m'; }
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function saveLogs() { try { localStorage.setItem(LOGS_KEY, JSON.stringify(logs)); } catch(e){} }
+function loadLogs() { try { const r=localStorage.getItem(LOGS_KEY); if(r) logs=JSON.parse(r); } catch(e){ logs=[]; } }
+
+function switchScreen(name) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+let blurTimeout = null;
+function onInput() { showSuggestions(); }
+function onFocus() { showSuggestions(); }
+function onBlur() { blurTimeout = setTimeout(hideSuggestions, 200); }
+function hideSuggestions() {
+  document.getElementById('suggestList').classList.remove('visible');
+  document.getElementById('taskInput').classList.remove('open');
+  suggestFocusIdx = -1;
+}
+function knownTasks() {
+  const seen=new Set(), res=[];
+  for(const l of logs){ if(!seen.has(l.task)){seen.add(l.task);res.push(l.task);} }
+  return res;
+}
+function showSuggestions() {
+  const val=document.getElementById('taskInput').value.trim().toLowerCase();
+  const tasks=knownTasks(), filtered=val?tasks.filter(t=>t.toLowerCase().includes(val)):tasks;
+  const list=document.getElementById('suggestList');
+  if(!filtered.length){hideSuggestions();return;}
+  const totals=getTaskTotals();
+  list.innerHTML=filtered.slice(0,6).map((t,i)=>{
+    const total=totals[t]?formatShort(totals[t].totalSec):'';
+    return `<div class="suggest-item" data-name="${esc(t)}"
+      onmousedown="pickSuggest('${esc(t)}')" ontouchstart="pickSuggest('${esc(t)}')" onmouseenter="suggestFocusIdx=${i}">
+      <span class="suggest-item-name">${esc(t)}</span>
+      ${total?`<span class="suggest-item-meta">${total}</span>`:''}
+    </div>`;
+  }).join('');
+  list.classList.add('visible');
+  document.getElementById('taskInput').classList.add('open');
+  suggestFocusIdx=-1;
+}
+function pickSuggest(name) {
+  clearTimeout(blurTimeout);
+  document.getElementById('taskInput').value=name;
+  hideSuggestions();
+}
+function onKey(e) {
+  const items=document.querySelectorAll('.suggest-item');
+  const visible=document.getElementById('suggestList').classList.contains('visible');
+  if(e.key==='Enter'){
+    if(visible&&suggestFocusIdx>=0&&items[suggestFocusIdx]) pickSuggest(items[suggestFocusIdx].dataset.name);
+    else startTimer();
+    e.preventDefault();
+  } else if(e.key==='ArrowDown'&&visible){
+    suggestFocusIdx=Math.min(suggestFocusIdx+1,items.length-1); e.preventDefault();
+  } else if(e.key==='ArrowUp'&&visible){
+    suggestFocusIdx=Math.max(suggestFocusIdx-1,0); e.preventDefault();
+  } else if(e.key==='Escape') hideSuggestions();
+}
+
+function elapsedSec() {
+  if(!startTime) return pausedSec;
+  return pausedSec + Math.floor((Date.now()-startTime)/1000);
+}
+function updateClock() {
+  const sec=elapsedSec(), h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
+  document.getElementById('timerDisplay').textContent=pad(h)+':'+pad(m)+':'+pad(s);
+}
+function startTimer() {
+  const input=document.getElementById('taskInput');
+  currentTask=input.value.trim()||'無題のタスク';
+  startTime=Date.now(); pausedSec=0; pausedAt=null;
+  input.value=''; hideSuggestions();
+  const disp=document.getElementById('taskDisplay');
+  disp.innerHTML='<span class="pulse-dot"></span>'+esc(currentTask);
+  disp.classList.remove('empty');
+  document.getElementById('timerCard').className='timer-card running';
+  document.getElementById('startBtn').disabled=true;
+  document.getElementById('pauseBtn').disabled=false;
+  document.getElementById('pauseBtn').textContent='⏸ 一時停止';
+  document.getElementById('pauseBtn').onclick=pauseTimer;
+  document.getElementById('stopBtn').disabled=false;
+  intervalId=setInterval(updateClock,500);
+}
+function pauseTimer() {
+  if(!startTime) return;
+  clearInterval(intervalId);
+  pausedSec+=Math.floor((Date.now()-startTime)/1000);
+  startTime=null; pausedAt=Date.now();
+  document.getElementById('timerCard').className='timer-card paused';
+  document.getElementById('pauseBtn').textContent='▶ 再開';
+  document.getElementById('pauseBtn').onclick=resumeTimer;
+}
+function resumeTimer() {
+  startTime=Date.now(); pausedAt=null;
+  document.getElementById('timerCard').className='timer-card running';
+  document.getElementById('pauseBtn').textContent='⏸ 一時停止';
+  document.getElementById('pauseBtn').onclick=pauseTimer;
+  intervalId=setInterval(updateClock,500);
+}
+function stopTimer() {
+  if(startTime===null && pausedSec===0) return;
+  clearInterval(intervalId);
+  const sec=elapsedSec();
+  if(sec>0){
+    const startedAt=new Date(Date.now()-(startTime?Date.now()-startTime:0)-pausedSec*1000);
+    logs.unshift({task:currentTask, startISO:startedAt.toISOString(), endISO:new Date().toISOString(), sec});
+    saveLogs(); renderAll();
+  }
+  startTime=null; pausedSec=0; pausedAt=null; currentTask='';
+  document.getElementById('timerDisplay').textContent='00:00:00';
+  const disp=document.getElementById('taskDisplay');
+  disp.textContent='タスク名を入力して開始'; disp.classList.add('empty');
+  document.getElementById('timerCard').className='timer-card';
+  document.getElementById('startBtn').disabled=false;
+  document.getElementById('pauseBtn').textContent='⏸ 一時停止';
+  document.getElementById('pauseBtn').onclick=pauseTimer;
+  document.getElementById('pauseBtn').disabled=true;
+  document.getElementById('stopBtn').disabled=true;
+}
+
+function renderAll() { renderToday(); renderAllLogs(); renderTaskStats(); updateStats(); }
+function todayLogs() { const tk=todayKey(); return logs.filter(l=>isoDateKey(l.startISO)===tk); }
+
+function renderToday() {
+  const tl=todayLogs(), el=document.getElementById('logListToday');
+  if(!tl.length){el.innerHTML='<div class="empty-state">まだ記録がありません</div>';return;}
+  el.innerHTML=tl.map(l=>{
+    const i=logs.indexOf(l);
+    return `<div class="log-item"><div class="log-dot"></div>
+      <div class="log-task-name">${esc(l.task)}</div>
+      <div class="log-meta">${formatClock(l.startISO)}〜${formatClock(l.endISO)}</div>
+      <div class="log-dur">${formatDur(l.sec)}</div>
+      <button class="log-del" onclick="deleteLog(${i})">×</button></div>`;
+  }).join('');
+}
+function renderAllLogs(filterDate) {
+  const el=document.getElementById('logListAll');
+  const target = filterDate || null;
+  const filtered = target ? logs.filter(l=>isoDateKey(l.startISO)===target) : logs;
+  const logHeader = document.querySelector('#screen-log .header');
+  if (target) {
+    logHeader.innerHTML = `
+      <span class="header-title">${target}</span>
+      <button class="btn btn-sm btn-ghost" onclick="viewingDate=null;renderAllLogs()">すべて表示</button>`;
+  } else {
+    logHeader.innerHTML = `
+      <span class="header-title">過去のログ</span>
+      <button class="btn btn-sm btn-ghost btn-danger" onclick="clearAll()">全削除</button>`;
+  }
+  if(!filtered.length){el.innerHTML='<div class="empty-state">'+(target?'この日の記録はありません':'記録がありません')+'</div>';return;}
+  const groups={},order=[];
+  filtered.forEach((l,i)=>{
+    const gi=logs.indexOf(l);
+    const dk=isoDateKey(l.startISO);
+    if(!groups[dk]){groups[dk]=[];order.push(dk);}
+    groups[dk].push({l,i:gi});
+  });
+  el.innerHTML=order.map(dk=>{
+    const items=groups[dk],dayTotal=items.reduce((s,x)=>s+x.l.sec,0);
+    return `<div class="log-group">
+      <div class="log-group-date">${dateLabel(items[0].l.startISO)}&nbsp; 合計 ${formatShort(dayTotal)}</div>
+      <div class="log-list">${items.map(({l,i})=>`<div class="log-item"><div class="log-dot"></div>
+        <div class="log-task-name">${esc(l.task)}</div>
+        <div class="log-meta">${formatClock(l.startISO)}〜${formatClock(l.endISO)}</div>
+        <div class="log-dur">${formatDur(l.sec)}</div>
+        <button class="log-del" onclick="deleteLog(${i})">×</button></div>`).join('')}</div></div>`;
+  }).join('');
+}
+function getTaskTotals() {
+  const map={};
+  logs.forEach(l=>{
+    if(!map[l.task]) map[l.task]={totalSec:0,sessions:[],dates:{}};
+    map[l.task].totalSec+=l.sec; map[l.task].sessions.push(l.sec);
+    const dk=isoDateKey(l.startISO); map[l.task].dates[dk]=(map[l.task].dates[dk]||0)+l.sec;
+  });
+  return map;
+}
+function renderTaskStats() {
+  const el=document.getElementById('taskStatList');
+  const map=getTaskTotals();
+  const tasks=Object.keys(map).sort((a,b)=>map[b].totalSec-map[a].totalSec);
+  if(!tasks.length){el.innerHTML='<div class="empty-state">記録がありません</div>';return;}
+  el.innerHTML=tasks.map((task,ti)=>{
+    const d=map[task],count=d.sessions.length,avg=Math.round(d.totalSec/count);
+    const maxSec=Math.max(...d.sessions),minSec=Math.min(...d.sessions);
+    const dates=Object.keys(d.dates).sort().slice(-7),maxDay=Math.max(...dates.map(dk=>d.dates[dk]));
+    const bars=dates.map(dk=>`<div class="bar-row">
+      <div class="bar-date">${dk.slice(5)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round((d.dates[dk]/maxDay)*100)}%"></div></div>
+      <div class="bar-val">${formatShort(d.dates[dk])}</div></div>`).join('');
+    return `<div class="task-stat-item" onclick="toggleDetail(${ti})">
+      <div class="task-stat-top" id="tst-${ti}">
+        <div class="task-stat-name">${esc(task)}</div>
+        <div class="task-stat-chips"><span class="chip chip-total">${formatShort(d.totalSec)}</span><span class="chip">${count}回</span></div>
+        <span class="chevron" id="chev-${ti}">▼</span>
+      </div>
+      <div class="task-stat-detail" id="tsd-${ti}">
+        <div class="detail-grid">
+          <div class="detail-card"><span class="detail-val">${formatShort(d.totalSec)}</span><span class="detail-label">合計</span></div>
+          <div class="detail-card"><span class="detail-val">${formatShort(avg)}</span><span class="detail-label">平均</span></div>
+          <div class="detail-card"><span class="detail-val">${count}</span><span class="detail-label">回数</span></div>
+        </div>
+        <div class="detail-grid">
+          <div class="detail-card"><span class="detail-val">${formatDur(maxSec)}</span><span class="detail-label">最長</span></div>
+          <div class="detail-card"><span class="detail-val">${formatDur(minSec)}</span><span class="detail-label">最短</span></div>
+          <div class="detail-card"><span class="detail-val">${Object.keys(d.dates).length}</span><span class="detail-label">作業日数</span></div>
+        </div>
+        ${bars?`<div class="bar-section-label">日別（直近7日）</div><div class="bar-list">${bars}</div>`:''}
+      </div></div>`;
+  }).join('');
+}
+function toggleDetail(ti) {
+  const d=document.getElementById('tsd-'+ti), c=document.getElementById('chev-'+ti), t=document.getElementById('tst-'+ti);
+  const open=d.classList.toggle('visible');
+  c.classList.toggle('open',open); t.classList.toggle('expanded',open);
+}
+function updateStats() {
+  const tl=todayLogs(),total=tl.reduce((s,l)=>s+l.sec,0),count=tl.length;
+  document.getElementById('statTotal').textContent=count>0?formatShort(total):'0m';
+  document.getElementById('statCount').textContent=count;
+  document.getElementById('statAvg').textContent=count>0?formatShort(Math.round(total/count)):'—';
+}
+function deleteLog(i){logs.splice(i,1);saveLogs();renderAll();}
+function clearToday(){const tk=todayKey();if(!logs.filter(l=>isoDateKey(l.startISO)===tk).length)return;if(confirm('今日の記録を削除しますか？')){logs=logs.filter(l=>isoDateKey(l.startISO)!==tk);saveLogs();renderAll();}}
+function clearAll(){if(!logs.length)return;if(confirm('すべての記録を削除しますか？')){logs=[];saveLogs();renderAll();}}
+
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast'+(type?' '+type:'');
+  requestAnimationFrame(()=>t.classList.add('show'));
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+function copyForClaude(mode) {
+  let payload;
+  if(mode==='today'){
+    const tl=todayLogs();
+    payload={type:'NOTION_EXPORT',mode:'today',date:todayKey(),logs:tl.map(l=>({task:l.task,start:formatClock(l.startISO),end:formatClock(l.endISO),dur:formatDur(l.sec),sec:l.sec}))};
+  } else if(mode==='all'){
+    const groups={},order=[];
+    logs.forEach(l=>{const dk=isoDateKey(l.startISO);if(!groups[dk]){groups[dk]=[];order.push(dk);}groups[dk].push(l);});
+    payload={type:'NOTION_EXPORT',mode:'all',groups:order.map(dk=>({
+      date:dk, totalSec:groups[dk].reduce((s,l)=>s+l.sec,0),
+      logs:groups[dk].map(l=>({task:l.task,start:formatClock(l.startISO),end:formatClock(l.endISO),dur:formatDur(l.sec),sec:l.sec}))
+    }))};
+  } else {
+    const map=getTaskTotals(), tasks=Object.keys(map).sort((a,b)=>map[b].totalSec-map[a].totalSec);
+    payload={type:'NOTION_EXPORT',mode:'stats',stats:tasks.map(t=>({
+      task:t, totalSec:map[t].totalSec, total:formatShort(map[t].totalSec),
+      sessions:map[t].sessions.length, avg:formatShort(Math.round(map[t].totalSec/map[t].sessions.length)),
+      days:Object.keys(map[t].dates).length
+    }))};
+  }
+  const text=JSON.stringify(payload);
+  navigator.clipboard.writeText(text).then(()=>{
+    const label=mode==='today'?'今日のログ':mode==='all'?'全期間のログ':'タスク統計';
+    showToast(`✓ ${label}をコピーしました`, 'success');
+    const box=document.getElementById('copyResult');
+    box.textContent=text.slice(0,200)+(text.length>200?'…':'');
+    box.classList.add('visible');
+  }).catch(()=>showToast('コピーに失敗しました'));
+}
+
+function tickClock() {
+  const now = new Date();
+  document.getElementById('currentTime').textContent =
+    pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+}
+
+let calYear, calMonth, viewingDate = null;
+function openCalendar() {
+  const now = new Date();
+  calYear = now.getFullYear(); calMonth = now.getMonth();
+  renderCalendar();
+  document.getElementById('calOverlay').classList.add('open');
+}
+function closeCalendar() {
+  document.getElementById('calOverlay').classList.remove('open');
+}
+function onOverlayClick(e) {
+  if (e.target === document.getElementById('calOverlay')) closeCalendar();
+}
+function calMove(dir) {
+  calMonth += dir;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendar();
+}
+function renderCalendar() {
+  document.getElementById('calMonthLabel').textContent = `${calYear}年${calMonth+1}月`;
+  const logDates = new Set(logs.map(l => isoDateKey(l.startISO)));
+  const todayKey_ = todayKey();
+  const first = new Date(calYear, calMonth, 1);
+  const startDow = first.getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const daysInPrev  = new Date(calYear, calMonth, 0).getDate();
+  const cells = [];
+  for (let i = startDow - 1; i >= 0; i--) cells.push({ d: daysInPrev - i, cur: false });
+  for (let d = 1; d <= daysInMonth; d++) cells.push({ d, cur: true });
+  while (cells.length % 7 !== 0) cells.push({ d: cells.length - startDow - daysInMonth + 1, cur: false });
+  document.getElementById('calGrid').innerHTML = cells.map(({d, cur}) => {
+    if (!cur) return `<button class="cal-day other-month">${d}</button>`;
+    const dk = `${calYear}/${pad(calMonth+1)}/${pad(d)}`;
+    const cls = ['cal-day', dk===todayKey_?'today':'', logDates.has(dk)?'has-log':'', viewingDate===dk?'viewing':''].filter(Boolean).join(' ');
+    return `<button class="${cls}" onclick="selectCalDate('${dk}')">${d}</button>`;
+  }).join('');
+}
+function selectCalDate(dk) {
+  viewingDate = dk;
+  closeCalendar();
+  switchScreen('log');
+  renderAllLogs(dk);
+}
+
+init();
+</script>
+</body>
+</html>

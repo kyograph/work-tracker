@@ -11,9 +11,11 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg: #fff; --surface: #f7f7f6; --surface2: #efefee;
-  --border: rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.13); --border3: rgba(0,0,0,0.22);
-  --text: #111110; --muted: #8a8784; --danger: #b83232; --success: #1a7a4a;
+  --bg: #e8e8e8; --surface: #d8d8d8; --surface2: #cccccc;
+  --border: rgba(0,0,0,0.10); --border2: rgba(0,0,0,0.16); --border3: rgba(0,0,0,0.26);
+  --text: #1a1a1a; --muted: #666666; --danger: #b83232; --success: #1a7a4a;
+  --card-bg: #f0f0f0;
+  --nav-bg: rgba(220,220,220,0.92);
   --nav-h: 64px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --mono: 'DM Mono', monospace; --sans: 'Noto Sans JP', sans-serif;
@@ -37,12 +39,12 @@ body {
 
 /* ── Timer card ── */
 .timer-card {
-  background: var(--surface); border: 1px solid var(--border2);
+  background: var(--card-bg); border: 1px solid var(--border2);
   border-radius: 20px; padding: 1.5rem 1.25rem 1.25rem;
   margin-bottom: 1rem; transition: border-color 0.25s, background 0.25s;
 }
-.timer-card.running { border-color: rgba(0,0,0,0.3); background: #fff; }
-.timer-card.paused  { border-color: rgba(0,0,0,0.15); background: #fafafa; }
+.timer-card.running { border-color: rgba(0,0,0,0.35); background: #f5f5f5; }
+.timer-card.paused  { border-color: rgba(0,0,0,0.15); background: #dcdcdc; }
 .timer-card.paused .time-display { opacity: 0.38; }
 
 .task-chip-label { font-size: 10px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
@@ -59,7 +61,7 @@ body {
   margin-bottom: 0.35rem;
 }
 .current-time {
-  font-family: var(--mono); font-size: 13px; font-weight: 300;
+  font-family: var(--mono); font-size: 20px; font-weight: 300;
   color: var(--muted); letter-spacing: 0.06em;
   margin-bottom: 1.1rem;
 }
@@ -70,12 +72,13 @@ body {
   border-radius: 12px; font-family: var(--sans); font-weight: 400;
   cursor: pointer; transition: all 0.12s; border: 1px solid transparent;
   white-space: nowrap; user-select: none;
+  /* minimum touch target */
   min-height: 48px; padding: 0 20px; font-size: 14px;
 }
 .btn-primary { background: var(--text); color: #fff; border-color: var(--text); flex: 1; }
 .btn-primary:active { background: #333; transform: scale(0.97); }
 .btn-ghost { background: transparent; color: var(--muted); border-color: var(--border2); }
-.btn-ghost:active { background: var(--surface); transform: scale(0.97); }
+.btn-ghost:active { background: var(--surface2); transform: scale(0.97); }
 .btn-ghost.flex1 { flex: 1; }
 .btn:disabled { opacity: 0.28; pointer-events: none; }
 .btn-sm { min-height: 40px; padding: 0 14px; font-size: 13px; border-radius: 10px; }
@@ -86,9 +89,9 @@ body {
 .input-row { display: flex; gap: 8px; margin-bottom: 1rem; }
 .input-wrap { position: relative; flex: 1; }
 .task-input {
-  width: 100%; background: #fff; border: 1px solid var(--border2);
+  width: 100%; background: #f0f0f0; border: 1px solid var(--border2);
   border-radius: 12px; padding: 0 14px;
-  font-family: var(--sans); font-size: 16px;
+  font-family: var(--sans); font-size: 16px; /* 16px prevents iOS zoom */
   font-weight: 300; color: var(--text); outline: none;
   min-height: 48px; transition: border-color 0.2s;
 }
@@ -98,7 +101,7 @@ body {
 
 .suggest-list {
   position: absolute; top: 100%; left: 0; right: 0;
-  background: #fff; border: 1px solid var(--border3); border-top: none;
+  background: #f0f0f0; border: 1px solid var(--border3); border-top: none;
   border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;
   z-index: 200; overflow: hidden; display: none;
   box-shadow: 0 8px 24px rgba(0,0,0,0.08);
@@ -116,7 +119,7 @@ body {
 
 /* ── Stats bar ── */
 .stats-bar { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 1.25rem; }
-.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 8px; text-align: center; }
+.stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 14px 8px; text-align: center; }
 .stat-val { font-family: var(--mono); font-size: 20px; font-weight: 400; color: var(--text); display: block; margin-bottom: 4px; }
 .stat-label { font-size: 10px; color: var(--muted); letter-spacing: 0.04em; line-height: 1.3; }
 
@@ -129,7 +132,7 @@ body {
 .log-list { display: flex; flex-direction: column; gap: 6px; }
 .log-item {
   display: flex; align-items: center; gap: 10px;
-  background: #fff; border: 1px solid var(--border);
+  background: var(--card-bg); border: 1px solid var(--border2);
   border-radius: 12px; padding: 13px 14px;
   animation: slideIn 0.16s ease;
 }
@@ -147,48 +150,48 @@ body {
 
 /* ── Task stats ── */
 .task-stat-item {
-  background: #fff; border: 1px solid var(--border);
+  background: var(--card-bg); border: 1px solid var(--border2);
   border-radius: 14px; padding: 14px 16px; margin-bottom: 8px;
 }
 .task-stat-top { display: flex; align-items: center; gap: 10px; }
 .task-stat-top.expanded { margin-bottom: 14px; }
 .task-stat-name { flex: 1; font-size: 15px; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .task-stat-chips { display: flex; gap: 6px; flex-shrink: 0; }
-.chip { font-family: var(--mono); font-size: 11px; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 3px 8px; }
+.chip { font-family: var(--mono); font-size: 11px; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 5px; padding: 3px 8px; }
 .chip-total { color: var(--text); font-weight: 500; }
 .chevron { font-size: 10px; color: var(--muted); transition: transform 0.2s; flex-shrink: 0; }
 .chevron.open { transform: rotate(180deg); }
 .task-stat-detail { display: none; }
 .task-stat-detail.visible { display: block; }
 .detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px; }
-.detail-card { background: var(--surface); border-radius: 8px; padding: 10px 8px; text-align: center; }
+.detail-card { background: var(--surface2); border-radius: 8px; padding: 10px 8px; text-align: center; }
 .detail-val { font-family: var(--mono); font-size: 15px; font-weight: 400; display: block; margin-bottom: 3px; }
 .detail-label { font-size: 10px; color: var(--muted); }
 .bar-section-label { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
 .bar-list { display: flex; flex-direction: column; gap: 6px; }
 .bar-row { display: flex; align-items: center; gap: 8px; }
 .bar-date { font-family: var(--mono); font-size: 10px; color: var(--muted); width: 60px; flex-shrink: 0; }
-.bar-track { flex: 1; height: 5px; background: var(--surface); border-radius: 3px; overflow: hidden; }
+.bar-track { flex: 1; height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
 .bar-fill { height: 100%; background: var(--text); border-radius: 3px; }
 .bar-val { font-family: var(--mono); font-size: 10px; color: var(--text); width: 40px; text-align: right; flex-shrink: 0; }
 
 /* ── Export panel ── */
-.export-panel { background: var(--surface); border: 1px solid var(--border2); border-radius: 16px; padding: 1.25rem; margin-bottom: 1rem; }
+.export-panel { background: var(--card-bg); border: 1px solid var(--border2); border-radius: 16px; padding: 1.25rem; margin-bottom: 1rem; }
 .export-panel-title { font-size: 13px; font-weight: 500; margin-bottom: 6px; }
 .export-panel-desc { font-size: 13px; color: var(--muted); line-height: 1.7; margin-bottom: 14px; }
 .export-panel-desc code { font-family: var(--mono); background: var(--surface2); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
 .export-btns { display: flex; flex-direction: column; gap: 8px; }
-.copy-result { margin-top: 10px; background: #fff; border: 1px solid var(--border2); border-radius: 8px; padding: 10px 12px; font-family: var(--mono); font-size: 11px; color: var(--muted); line-height: 1.6; display: none; word-break: break-all; }
+.copy-result { margin-top: 10px; background: var(--card-bg); border: 1px solid var(--border2); border-radius: 8px; padding: 10px 12px; font-family: var(--mono); font-size: 11px; color: var(--muted); line-height: 1.6; display: none; word-break: break-all; }
 .copy-result.visible { display: block; }
 
-.empty-state { text-align: center; padding: 3rem 0; color: #bbb; font-size: 14px; }
+.empty-state { text-align: center; padding: 3rem 0; color: #888; font-size: 14px; }
 
 /* ── Bottom nav ── */
 .bottom-nav {
   position: fixed; bottom: 0; left: 0; right: 0;
   height: calc(var(--nav-h) + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
-  background: rgba(255,255,255,0.92);
+  background: rgba(210,210,210,0.94);
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid var(--border2);
   display: flex; align-items: stretch;
@@ -287,7 +290,7 @@ body {
     <div class="task-chip-label">タスク</div>
     <div class="task-name-display empty" id="taskDisplay">タスク名を入力して開始</div>
     <div class="time-display" id="timerDisplay">00:00:00</div>
-    <div class="current-time" id="currentTime">--:--:--</div>
+    <div class="current-time" id="currentTime">--:--</div>
     <div class="controls">
       <button class="btn btn-primary" id="startBtn" onclick="startTimer()">▶ 開始</button>
       <button class="btn btn-ghost" id="pauseBtn" onclick="pauseTimer()" disabled>⏸ 一時停止</button>
@@ -398,6 +401,7 @@ const LOGS_KEY = 'wt_logs_v3';
 let startTime = null, pausedAt = null, pausedSec = 0, intervalId = null, currentTask = '', logs = [];
 let suggestFocusIdx = -1;
 
+// ── Init ──
 function init() {
   const now = new Date(), days = ['日','月','火','水','木','金','土'];
   document.getElementById('headerDate').textContent =
@@ -408,6 +412,7 @@ function init() {
   setInterval(tickClock, 1000);
 }
 
+// ── Helpers ──
 function pad(n) { return String(n).padStart(2,'0'); }
 function todayKey() { const d=new Date(); return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}`; }
 function isoDateKey(iso) { const d=new Date(iso); return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}`; }
@@ -420,9 +425,11 @@ function formatDur(sec) {
 function formatShort(sec) { const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60); return h>0?h+'h'+pad(m)+'m':m+'m'; }
 function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+// ── Storage ──
 function saveLogs() { try { localStorage.setItem(LOGS_KEY, JSON.stringify(logs)); } catch(e){} }
 function loadLogs() { try { const r=localStorage.getItem(LOGS_KEY); if(r) logs=JSON.parse(r); } catch(e){ logs=[]; } }
 
+// ── Screen nav ──
 function switchScreen(name) {
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -431,6 +438,7 @@ function switchScreen(name) {
   window.scrollTo(0,0);
 }
 
+// ── Autocomplete ──
 let blurTimeout = null;
 function onInput() { showSuggestions(); }
 function onFocus() { showSuggestions(); }
@@ -482,6 +490,7 @@ function onKey(e) {
   } else if(e.key==='Escape') hideSuggestions();
 }
 
+// ── Timer ──
 function elapsedSec() {
   if(!startTime) return pausedSec;
   return pausedSec + Math.floor((Date.now()-startTime)/1000);
@@ -543,6 +552,7 @@ function stopTimer() {
   document.getElementById('stopBtn').disabled=true;
 }
 
+// ── Render ──
 function renderAll() { renderToday(); renderAllLogs(); renderTaskStats(); updateStats(); }
 function todayLogs() { const tk=todayKey(); return logs.filter(l=>isoDateKey(l.startISO)===tk); }
 
@@ -562,6 +572,8 @@ function renderAllLogs(filterDate) {
   const el=document.getElementById('logListAll');
   const target = filterDate || null;
   const filtered = target ? logs.filter(l=>isoDateKey(l.startISO)===target) : logs;
+
+  // Update log screen header
   const logHeader = document.querySelector('#screen-log .header');
   if (target) {
     logHeader.innerHTML = `
@@ -572,6 +584,7 @@ function renderAllLogs(filterDate) {
       <span class="header-title">過去のログ</span>
       <button class="btn btn-sm btn-ghost btn-danger" onclick="clearAll()">全削除</button>`;
   }
+
   if(!filtered.length){el.innerHTML='<div class="empty-state">'+(target?'この日の記録はありません':'記録がありません')+'</div>';return;}
   const groups={},order=[];
   filtered.forEach((l,i)=>{
@@ -649,6 +662,7 @@ function deleteLog(i){logs.splice(i,1);saveLogs();renderAll();}
 function clearToday(){const tk=todayKey();if(!logs.filter(l=>isoDateKey(l.startISO)===tk).length)return;if(confirm('今日の記録を削除しますか？')){logs=logs.filter(l=>isoDateKey(l.startISO)!==tk);saveLogs();renderAll();}}
 function clearAll(){if(!logs.length)return;if(confirm('すべての記録を削除しますか？')){logs=[];saveLogs();renderAll();}}
 
+// ── Toast ──
 function showToast(msg,type=''){
   const t=document.getElementById('toast');
   t.textContent=msg; t.className='toast'+(type?' '+type:'');
@@ -656,6 +670,7 @@ function showToast(msg,type=''){
   setTimeout(()=>t.classList.remove('show'),2800);
 }
 
+// ── Export ──
 function copyForClaude(mode) {
   let payload;
   if(mode==='today'){
@@ -686,13 +701,16 @@ function copyForClaude(mode) {
   }).catch(()=>showToast('コピーに失敗しました'));
 }
 
+// ── Current clock ──
 function tickClock() {
   const now = new Date();
   document.getElementById('currentTime').textContent =
     pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
 }
 
+// ── Calendar ──
 let calYear, calMonth, viewingDate = null;
+
 function openCalendar() {
   const now = new Date();
   calYear = now.getFullYear(); calMonth = now.getMonth();
@@ -712,27 +730,41 @@ function calMove(dir) {
   renderCalendar();
 }
 function renderCalendar() {
-  document.getElementById('calMonthLabel').textContent = `${calYear}年${calMonth+1}月`;
+  const days = ['日','月','火','水','木','金','土'];
+  document.getElementById('calMonthLabel').textContent =
+    `${calYear}年${calMonth+1}月`;
+
   const logDates = new Set(logs.map(l => isoDateKey(l.startISO)));
   const todayKey_ = todayKey();
   const first = new Date(calYear, calMonth, 1);
   const startDow = first.getDay();
   const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
   const daysInPrev  = new Date(calYear, calMonth, 0).getDate();
+
   const cells = [];
-  for (let i = startDow - 1; i >= 0; i--) cells.push({ d: daysInPrev - i, cur: false });
+  // prev month tail
+  for (let i = startDow - 1; i >= 0; i--) {
+    cells.push({ d: daysInPrev - i, cur: false });
+  }
+  // current month
   for (let d = 1; d <= daysInMonth; d++) cells.push({ d, cur: true });
+  // next month head
   while (cells.length % 7 !== 0) cells.push({ d: cells.length - startDow - daysInMonth + 1, cur: false });
+
   document.getElementById('calGrid').innerHTML = cells.map(({d, cur}) => {
     if (!cur) return `<button class="cal-day other-month">${d}</button>`;
     const dk = `${calYear}/${pad(calMonth+1)}/${pad(d)}`;
-    const cls = ['cal-day', dk===todayKey_?'today':'', logDates.has(dk)?'has-log':'', viewingDate===dk?'viewing':''].filter(Boolean).join(' ');
+    const isToday = dk === todayKey_;
+    const hasLog  = logDates.has(dk);
+    const isView  = viewingDate === dk;
+    const cls = ['cal-day', isToday?'today':'', hasLog?'has-log':'', isView?'viewing':''].filter(Boolean).join(' ');
     return `<button class="${cls}" onclick="selectCalDate('${dk}')">${d}</button>`;
   }).join('');
 }
 function selectCalDate(dk) {
   viewingDate = dk;
   closeCalendar();
+  // Switch to log screen filtered to this date
   switchScreen('log');
   renderAllLogs(dk);
 }
